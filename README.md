@@ -15,7 +15,14 @@
 
 ## Запуск
 
-Без збирання й залежностей: відкрийте `index.html` у браузері.
+Без збирання й залежностей: відкрийте `public/index.html` у браузері.
+
+## Деплой на Cloudflare
+
+Статичний сайт, який роздається через Workers Assets (налаштування в `wrangler.jsonc`, папка `public/`).
+
+- **З GitHub:** Cloudflare → Workers & Pages → Create → підключити цей репозиторій. Команда збирання не потрібна, деплой: `npx wrangler deploy`.
+- **З консолі:** `npx wrangler login`, потім `npx wrangler deploy`.
 
 ## Примітка
 
