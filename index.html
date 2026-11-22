@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ВЛК — чеклист документів і кроків</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f3ee; --card:#ffffff; --ink:#1d2120; --muted:#6b706c; --line:#e3e1d8;
+    --accent:#4b5d3a; --accent-soft:#e7ecdf; --warn:#9a5b13; --warn-soft:#fbf0de;
+    --info:#2f5577; --info-soft:#e4edf5; --done:#9aa39a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#141614; --card:#1d201d; --ink:#e9ebe6; --muted:#9aa09a; --line:#2e322e;
+      --accent:#a3bf84; --accent-soft:#263022; --warn:#e7b26a; --warn-soft:#33281a;
+      --info:#8fb6da; --info-soft:#1c2733; --done:#5d635d;
+    }
+  }
+  :root{ --wall-a:#e2e9d2; --wall-b:#c9d5b6; --doodle:rgba(58,80,38,.26); }
+  @media (prefers-color-scheme: dark){ :root{ --wall-a:#141a13; --wall-b:#1f281c; --doodle:rgba(170,205,135,.13); } }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,var(--wall-a),var(--wall-b)) fixed;min-height:100vh;color:var(--ink);font-family:Manrope,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .bgpat{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:32px 18px 64px}
+  section.group,.tabs{box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(40,60,20,.06)}
+  header h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+  header p{margin:0;color:var(--muted);font-size:15px;max-width:640px}
+  .tabs{display:flex;gap:6px;margin:26px 0 18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;position:sticky;top:8px;z-index:5}
+  .tab{flex:1;border:0;background:transparent;color:var(--muted);font:600 15px Manrope,sans-serif;padding:11px 12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .tab[aria-selected="true"]{background:var(--accent);color:#fff}
+  @media (prefers-color-scheme: dark){.tab[aria-selected="true"]{color:#141614}}
+  .tab .cnt{font-size:12px;font-weight:700;opacity:.85;padding:1px 7px;border-radius:99px;background:rgba(127,127,127,.18)}
+  .panel{display:none}.panel.active{display:block}
+  .progress{display:flex;align-items:center;gap:14px;margin:0 0 18px}
+  .bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+  .progress span{font-weight:700;font-size:14px;min-width:64px;text-align:right}
+  .reset{border:1px solid var(--line);background:var(--card);color:var(--muted);font:600 13px Manrope,sans-serif;border-radius:9px;padding:6px 11px;cursor:pointer}
+  .reset:hover{color:var(--ink)}
+  section.group{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:0 0 14px;overflow:hidden}
+  section.group h2{font-size:16px;font-weight:800;margin:0;padding:15px 18px 11px;display:flex;align-items:center;gap:10px}
+  section.group h2 .ico{font-size:18px}
+  section.group h2 small{margin-left:auto;color:var(--muted);font-weight:600;font-size:13px}
+  ul.items{list-style:none;margin:0;padding:0}
+  li.item{border-top:1px solid var(--line)}
+  li.item label{display:flex;gap:13px;padding:12px 18px;cursor:pointer;align-items:flex-start}
+  li.item label:hover{background:rgba(127,127,127,.05)}
+  li.item input{appearance:none;flex:0 0 22px;height:22px;margin:1px 0 0;border:2px solid var(--line);border-radius:7px;background:var(--card);cursor:pointer;display:grid;place-items:center;transition:.15s}
+  li.item input:checked{background:var(--accent);border-color:var(--accent)}
+  li.item input:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  @media (prefers-color-scheme: dark){li.item input:checked::after{border-color:#141614}}
+  .txt{flex:1;min-width:0}
+  .t{font-weight:600;font-size:15px}
+  .d{color:var(--muted);font-size:13.5px;margin-top:2px}
+  li.item.checked .t{color:var(--done);text-decoration:line-through;text-decoration-thickness:1.5px}
+  li.item.checked .d{opacity:.6}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+  .tag.req{background:var(--accent-soft);color:var(--accent)}
+  .tag.opt{background:var(--info-soft);color:var(--info)}
+  .tag.ask{background:var(--warn-soft);color:var(--warn)}
+  .qty{font-weight:800;color:var(--accent)}
+  li.item.has-sub{border-top:1px solid var(--line)}
+  li.item.has-sub .prow{display:flex;align-items:flex-start}
+  li.item.has-sub .prow label{flex:1;min-width:0}
+  li.item.has-sub input:indeterminate{background:var(--accent-soft);border-color:var(--accent)}
+  li.item.has-sub input:indeterminate::after{content:"";width:10px;height:2.5px;background:var(--accent);border:0;transform:none;border-radius:2px}
+  .exp{margin:10px 14px 0 0;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:700 12px Manrope,sans-serif;border-radius:99px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;flex:0 0 auto}
+  .exp:hover{color:var(--ink)}
+  .exp svg{transition:transform .2s}
+  li.has-sub.open .exp svg{transform:rotate(180deg)}
+  .sub-list{display:none;background:rgba(127,127,127,.045)}
+  li.has-sub.open .sub-list{display:block}
+  li.item.sub label{padding:10px 18px 10px 57px}
+  li.item.sub .t{font-size:14.5px}
+  .step-n{flex:0 0 26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;display:grid;place-items:center;margin-top:-1px}
+  li.item.checked .step-n{opacity:.5}
+  .note{background:var(--warn-soft);color:var(--ink);border-radius:14px;padding:13px 16px;font-size:14px;margin:0 0 16px;border:1px solid transparent}
+  .note b{color:var(--warn)}
+  .dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:4px 18px 16px}
+  .dates label{font-size:13px;font-weight:600;color:var(--muted);display:block}
+  .dates input{width:100%;margin-top:5px;font:500 15px Manrope,sans-serif;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  .out{margin-top:7px;font-size:13.5px}
+  .out b{font-weight:800}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--muted);margin:-4px 0 16px;width:fit-content;max-width:100%;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  @media (prefers-color-scheme: dark){.legend{background:rgba(29,32,29,.65)}}
+  footer{margin-top:28px;color:var(--muted);font-size:13px}
+  footer a{color:var(--info)}
+  footer ul{padding-left:18px;margin:6px 0 0}
+</style>
+</head>
+<body>
+<svg class="bgpat" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- танк -->
+    <g id="dz-tank">
+      <rect x="0" y="30" width="62" height="16" rx="8"/>
+      <circle cx="11" cy="38" r="3.5"/><circle cx="24" cy="38" r="3.5"/><circle cx="37" cy="38" r="3.5"/><circle cx="50" cy="38" r="3.5"/>
+      <rect x="7" y="19" width="48" height="11" rx="5"/>
+      <rect x="17" y="5" width="26" height="14" rx="7"/>
+      <path d="M43 11 L61 8"/><rect x="61" y="4.5" width="5" height="6.5" rx="2"/>
+      <circle cx="25.5" cy="11" r="1.7" style="fill:var(--doodle);stroke:none"/><circle cx="34" cy="11" r="1.7" style="fill:var(--doodle);stroke:none"/>
+      <path d="M26.5 14.5 Q29.8 17.2 33 14.5"/>
+    </g>
+    <!-- квадрокоптер -->
+    <g id="dz-drone">
+      <path d="M21 19 L9 9 M43 19 L55 9 M21 31 L9 41 M43 31 L55 41"/>
+      <ellipse cx="9" cy="8" rx="9" ry="2.6"/><ellipse cx="55" cy="8" rx="9" ry="2.6"/>
+      <ellipse cx="9" cy="42" rx="9" ry="2.6"/><ellipse cx="55" cy="42" rx="9" ry="2.6"/>
+      <rect x="18" y="16" width="28" height="18" rx="9"/>
+      <circle cx="27" cy="23" r="1.7" style="fill:var(--doodle);stroke:none"/><circle cx="37" cy="23" r="1.7" style="fill:var(--doodle);stroke:none"/>
+      <path d="M28 27.5 Q32 30.8 36 27.5"/>
+    </g>
+    <!-- ракета -->
+    <g id="dz-rocket">
+      <path d="M18 0 C29 9 31 24 28 40 H8 C5 24 7 9 18 0 Z"/>
+      <circle cx="18" cy="18" r="7"/>
+      <circle cx="15.5" cy="16.5" r="1.3" style="fill:var(--doodle);stroke:none"/><circle cx="20.5" cy="16.5" r="1.3" style="fill:var(--doodle);stroke:none"/>
+      <path d="M15.5 20.3 Q18 22.5 20.5 20.3"/>
+      <path d="M8 30 L0 42 L8 40 M28 30 L36 42 L28 40"/>
+      <path d="M12 44 Q18 56 24 44"/>
+    </g>
+    <!-- гранатомет -->
+    <g id="dz-rpg">
+      <rect x="0" y="14" width="46" height="9" rx="4.5"/>
+      <path d="M44 10 Q62 9 68 18.5 Q62 28 44 27 Z"/>
+      <rect x="14" y="23" width="6" height="11" rx="2.5"/><rect x="28" y="23" width="6" height="8" rx="2.5"/>
+      <rect x="20" y="7" width="9" height="7" rx="2"/>
+      <circle cx="54" cy="16.5" r="1.5" style="fill:var(--doodle);stroke:none"/><circle cx="59" cy="16.5" r="1.5" style="fill:var(--doodle);stroke:none"/>
+      <path d="M54 21 Q56.5 23.2 59 21"/>
+    </g>
+    <!-- ППО -->
+    <g id="dz-pvo">
+      <g transform="rotate(-24 8 22)"><rect x="6" y="6" width="32" height="13" rx="3.5"/><circle cx="14" cy="12.5" r="2.6"/><circle cx="22" cy="12.5" r="2.6"/><circle cx="30" cy="12.5" r="2.6"/></g>
+      <rect x="0" y="22" width="44" height="11" rx="3"/>
+      <path d="M44 33 V16 Q44 13 47 13 H56 Q62 13 64 20 V33 Z"/>
+      <path d="M48 16.5 H56 Q59 16.5 60.5 21 H48 Z"/>
+      <circle cx="51" cy="25.5" r="1.4" style="fill:var(--doodle);stroke:none"/><circle cx="56" cy="25.5" r="1.4" style="fill:var(--doodle);stroke:none"/>
+      <path d="M51 28.5 Q53.5 30.5 56 28.5"/>
+      <circle cx="11" cy="37" r="5"/><circle cx="27" cy="37" r="5"/><circle cx="54" cy="37" r="5"/>
+    </g>
+    <!-- граната -->
+    <g id="dz-grenade">
+      <circle cx="16" cy="27" r="13"/>
+      <rect x="10" y="8" width="12" height="6" rx="2"/>
+      <path d="M22 10 Q30 8 31 17"/>
+      <circle cx="7" cy="8" r="4"/>
+      <circle cx="12" cy="25" r="1.6" style="fill:var(--doodle);stroke:none"/><circle cx="20" cy="25" r="1.6" style="fill:var(--doodle);stroke:none"/>
+      <path d="M12 30 Q16 33.5 20 30"/>
+    </g>
+    <!-- безпілотник-літачок -->
+    <g id="dz-plane">
+      <ellipse cx="32" cy="20" rx="26" ry="5.5"/>
+      <path d="M26 15 L20 0 H27 L38 15 M26 25 L20 40 H27 L38 25"/>
+      <path d="M9 16 L4 9 H8 L14 15.5 M9 24 L4 31 H8 L14 24.5"/>
+      <path d="M60 12 V28"/>
+      <circle cx="49" cy="18.5" r="1.5" style="fill:var(--doodle);stroke:none"/>
+      <path d="M46 22 Q49 23.6 52 22"/>
+    </g>
+    <!-- ракета горизонтальна -->
+    <g id="dz-missile">
+      <path d="M8 6 H48 Q62 6 70 13 Q62 20 48 20 H8 Z"/>
+      <path d="M8 6 L0 0 V26 L8 20 M24 6 L30 0 M24 20 L30 26"/>
+      <circle cx="52" cy="11" r="1.4" style="fill:var(--doodle);stroke:none"/><circle cx="57" cy="11" r="1.4" style="fill:var(--doodle);stroke:none"/>
+      <path d="M52 15 Q54.5 17 57 15"/>
+    </g>
+    <path id="dz-star" d="M12 0 L15 8 L24 9 L17 15 L19 24 L12 19 L5 24 L7 15 L0 9 L9 8 Z"/>
+    <path id="dz-heart" d="M12 21 C-4 10 4 0 12 7 C20 0 28 10 12 21 Z"/>
+    <path id="dz-spark" d="M8 0 V16 M0 8 H16"/>
+    <!-- каска -->
+    <g id="dz-helmet">
+      <path d="M2 26 Q2 2 24 2 Q46 2 46 26 Z"/>
+      <path d="M-3 26 H51"/>
+      <use href="#dz-star" transform="translate(18 8) scale(.5)"/>
+    </g>
+
+    <pattern id="dz-pattern" width="420" height="420" patternUnits="userSpaceOnUse"
+      style="fill:none;stroke:var(--doodle);stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+      <use href="#dz-tank" transform="translate(24 40) rotate(-10)"/>
+      <use href="#dz-drone" transform="translate(170 18) rotate(8)"/>
+      <use href="#dz-rocket" transform="translate(330 22) rotate(20)"/>
+      <use href="#dz-star" transform="translate(122 120) rotate(-8)"/>
+      <use href="#dz-rpg" transform="translate(222 150) rotate(-15)"/>
+      <use href="#dz-grenade" transform="translate(36 160) rotate(10)"/>
+      <use href="#dz-heart" transform="translate(356 150) rotate(-10)"/>
+      <use href="#dz-spark" transform="translate(150 205) rotate(20)"/>
+      <use href="#dz-pvo" transform="translate(84 262) rotate(6)"/>
+      <use href="#dz-plane" transform="translate(250 262) rotate(-25)"/>
+      <use href="#dz-helmet" transform="translate(352 290) rotate(12)"/>
+      <use href="#dz-missile" transform="translate(180 360) rotate(8)"/>
+      <use href="#dz-star" transform="translate(20 355) scale(.8) rotate(15)"/>
+      <use href="#dz-heart" transform="translate(320 385) scale(.75)"/>
+      <use href="#dz-spark" transform="translate(300 110) scale(.8)"/>
+      <circle cx="105" cy="15" r="2.2"/><circle cx="395" cy="225" r="2.2"/><circle cx="200" cy="250" r="2"/><circle cx="60" cy="235" r="2"/><circle cx="270" cy="410" r="2"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#dz-pattern)"/>
+</svg>
+<div class="wrap">
+  <header>
+    <h1>ВЛК: чеклист</h1>
+    <p>Що взяти з собою і всі кроки — від направлення в «Резерв+» до результату. Позначки зберігаються в цьому браузері до 90 днів (кожне відкриття продовжує термін).</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="docs" aria-selected="true">📁 Що взяти <span class="cnt" id="cnt-docs"></span></button>
+    <button class="tab" role="tab" data-tab="steps" aria-selected="false">🧭 Кроки <span class="cnt" id="cnt-steps"></span></button>
+  </div>
+
+  <!-- ================= ДОКУМЕНТИ ================= -->
+  <div class="panel active" id="panel-docs">
+    <div class="progress"><div class="bar"><i id="bar-docs"></i></div><span id="pct-docs">0%</span><button class="reset" data-reset="docs">Скинути</button></div>
+    <div class="legend">
+      <span><span class="tag req">потрібно</span> беріть обов’язково</span>
+      <span><span class="tag ask">на вимогу</span> залежить від конкретної ВЛК</span>
+      <span><span class="tag opt">якщо є</span> беріть за наявності</span>
+    </div>
+
+    <section class="group" data-list="docs">
+      <h2><span class="ico">🪪</span>Особисті документи</h2>
+      <ul class="items">
+        <li class="item" data-id="d-passport"><label><input type="checkbox"><div class="txt"><div class="t">Паспорт <span class="tag req">потрібно</span></div><div class="d">ID-картка або книжечка. Оригінал + <span class="qty">2 копії</span></div></div></label></li>
+        <li class="item" data-id="d-inn"><label><input type="checkbox"><div class="txt"><div class="t">РНОКПП (ІПН) <span class="tag req">потрібно</span></div><div class="d">Оригінал + <span class="qty">2 копії</span></div></div></label></li>
+        <li class="item" data-id="d-vod"><label><input type="checkbox"><div class="txt"><div class="t">Військово-обліковий документ <span class="tag req">потрібно</span></div><div class="d">Військовий квиток / тимчасове посвідчення (оригінал + копія) або е-ВОД з QR-кодом у «Резерв+»</div></div></label></li>
+        <li class="item" data-id="d-napr"><label><input type="checkbox"><div class="txt"><div class="t">Направлення на ВЛК <span class="tag req">потрібно</span></div><div class="d">Електронне, у «Резерв+». Зробіть скриншот сповіщення з номером і датою реєстрації — на випадок проблем зі зв’язком</div></div></label></li>
+        <li class="item" data-id="d-phone"><label><input type="checkbox"><div class="txt"><div class="t">Заряджений телефон із «Резерв+» і «Дія» <span class="tag req">потрібно</span></div><div class="d">Плюс павербанк — проходити доведеться весь день</div></div></label></li>
+        <li class="item" data-id="d-reg"><label><input type="checkbox"><div class="txt"><div class="t">Довідка про місце проживання <span class="tag ask">на вимогу</span></div><div class="d">З «Дії» або ЦНАП</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="docs">
+      <h2><span class="ico">📷</span>Фото</h2>
+      <ul class="items">
+        <li class="item" data-id="d-photo"><label><input type="checkbox"><div class="txt"><div class="t">Фото 3×4 — <span class="qty">2–4 шт.</span> <span class="tag ask">на вимогу</span></div><div class="d">В офіційних роз’ясненнях Міноборони фото не згадуються, але реєстратура окремих ВЛК іноді їх просить. Підійдуть звичайні документні: матові, світле тло, без головного убору та окулярів. Це 2 хвилини у фотобудці — краще мати в папці</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="docs">
+      <h2><span class="ico">🩺</span>Медичні документи</h2>
+      <ul class="items">
+        <li class="item" data-id="m-card"><label><input type="checkbox"><div class="txt"><div class="t">Виписка з електронної медкарти / медкартка <span class="tag req">потрібно</span></div><div class="d">Попросіть у сімейного лікаря виписку за останні роки</div></div></label></li>
+        <li class="item" data-id="m-epikriz"><label><input type="checkbox"><div class="txt"><div class="t">Виписки зі стаціонару, епікризи, висновки спеціалістів <span class="tag opt">якщо є</span></div><div class="d">За останні 3–5 років. Оригінали + копії — копії можуть залишити у справі</div></div></label></li>
+        <li class="item" data-id="m-mri"><label><input type="checkbox"><div class="txt"><div class="t">Результати МРТ, КТ, УЗД, рентгенівські знімки <span class="tag opt">якщо є</span></div><div class="d">Висновки + самі знімки (диск/плівка)</div></div></label></li>
+        <li class="item" data-id="m-disp"><label><input type="checkbox"><div class="txt"><div class="t">Довідки про диспансерний облік <span class="tag opt">якщо є</span></div><div class="d">За хронічних захворювань</div></div></label></li>
+        <li class="item" data-id="m-msek"><label><input type="checkbox"><div class="txt"><div class="t">Рішення МСЕК / експертної команди про інвалідність <span class="tag opt">якщо є</span></div></div></label></li>
+        <li class="item" data-id="m-list"><label><input type="checkbox"><div class="txt"><div class="t">Аркуш-шпаргалка про себе</div><div class="d">Діагнози, операції, травми, ліки, на що скаржитеся. Зручно показати або зачитати кожному лікарю</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="docs">
+      <h2><span class="ico">🧪</span>Аналізи та обстеження <small>краще зробити заздалегідь</small></h2>
+      <ul class="items">
+        <li class="item" data-id="a-blood"><label><input type="checkbox"><div class="txt"><div class="t">Загальний аналіз крові <span class="tag req">потрібно</span></div><div class="d">З лейкоцитарною формулою</div></div></label></li>
+        <li class="item" data-id="a-urine"><label><input type="checkbox"><div class="txt"><div class="t">Загальний аналіз сечі <span class="tag req">потрібно</span></div></div></label></li>
+        <li class="item" data-id="a-infect"><label><input type="checkbox"><div class="txt"><div class="t">ВІЛ, сифіліс, гепатити B і C <span class="tag req">потрібно</span></div></div></label></li>
+        <li class="item" data-id="a-group"><label><input type="checkbox"><div class="txt"><div class="t">Група крові та резус-фактор <span class="tag ask">на вимогу</span></div><div class="d">Якщо немає відмітки у військовому квитку</div></div></label></li>
+        <li class="item" data-id="a-ekg"><label><input type="checkbox"><div class="txt"><div class="t">ЕКГ <span class="tag req">потрібно</span></div></div></label></li>
+        <li class="item" data-id="a-fluoro"><label><input type="checkbox"><div class="txt"><div class="t">Флюорографія / рентген органів грудної клітки <span class="tag req">потрібно</span></div><div class="d">Свіжа, з описом</div></div></label></li>
+        <li class="item" data-id="a-fast"><label><input type="checkbox"><div class="txt"><div class="t">Якщо аналізів немає — прийти натще</div><div class="d">Не їсти 4–8 годин до приїзду, щоб здати кров на місці</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="docs">
+      <h2><span class="ico">🎒</span>Дрібниці</h2>
+      <ul class="items">
+        <li class="item" data-id="x-folder"><label><input type="checkbox"><div class="txt"><div class="t">Папка з файлами + ручка</div><div class="d">Оригінали окремо від копій</div></div></label></li>
+        <li class="item" data-id="x-glasses"><label><input type="checkbox"><div class="txt"><div class="t">Окуляри / лінзи</div><div class="d">Якщо носите — для окуліста</div></div></label></li>
+        <li class="item" data-id="x-food"><label><input type="checkbox"><div class="txt"><div class="t">Вода і перекус</div><div class="d">Після здачі крові та в черзі</div></div></label></li>
+        <li class="item" data-id="x-time"><label><input type="checkbox"><div class="txt"><div class="t">Звільнити час у робочому календарі</div><div class="d">Базовий огляд — до 6 днів, з дообстеженнями — до 14 днів</div></div></label></li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- ================= КРОКИ ================= -->
+  <div class="panel" id="panel-steps">
+    <div class="progress"><div class="bar"><i id="bar-steps"></i></div><span id="pct-steps">0%</span><button class="reset" data-reset="steps">Скинути</button></div>
+
+    <div class="note"><b>Важливо:</b> онлайн-направлення в «Резерв+» — лише якщо паперової повістки ще немає. Якщо повістка вже є, потрібно особисто йти до ТЦК. Повістка — це не направлення на ВЛК.</div>
+
+    <section class="group" data-list="steps">
+      <h2><span class="ico">🗂️</span>Етап 1. Підготовка <small>до направлення — щоб не витрачати 30 днів</small></h2>
+      <ul class="items">
+        <li class="item" data-id="s1"><label><input type="checkbox"><span class="step-n">1</span><div class="txt"><div class="t">Переконатися, що паперової повістки немає</div><div class="d">Інакше онлайн-послуга недоступна — лише візит до ТЦК</div></div></label></li>
+        <li class="item" data-id="s5"><label><input type="checkbox"><span class="step-n">2</span><div class="txt"><div class="t">Сходити до сімейного лікаря</div><div class="d">Виписка з медкарти + направлення на аналізи (кров, сеча, інфекції, ЕКГ, флюорографія)</div></div></label></li>
+        <li class="item" data-id="s6"><label><input type="checkbox"><span class="step-n">3</span><div class="txt"><div class="t">Здати аналізи та зібрати документи</div><div class="d">Усе за вкладкою «Що взяти». Що повніший пакет, то менше шансів, що відправлять на дообстеження. Формуйте направлення, коли результати аналізів уже на руках</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="steps">
+      <h2><span class="ico">📱</span>Етап 2. Направлення</h2>
+      <ul class="items">
+        <li class="item" data-id="s2"><label><input type="checkbox"><span class="step-n">4</span><div class="txt"><div class="t">«Резерв+» → «Сервіси» → «Направлення на ВЛК»</div><div class="d">Заповнити форму та надіслати запит</div></div></label></li>
+        <li class="item" data-id="s3"><label><input type="checkbox"><span class="step-n">5</span><div class="txt"><div class="t">Дочекатися сповіщення (зазвичай протягом доби)</div><div class="d">У ньому: номер і дата реєстрації направлення, адреса медзакладу, хто з керівників ТЦК підписав</div></div></label></li>
+        <li class="item" data-id="s4"><label><input type="checkbox"><span class="step-n">6</span><div class="txt"><div class="t">Зберегти скриншот і записати дедлайн</div><div class="d">У вас 30 днів. Не встигли — подаєте запит повторно.</div></div></label></li>
+        <li class="item" data-id="s7"><label><input type="checkbox"><span class="step-n">7</span><div class="txt"><div class="t">Зателефонувати до медзакладу з направлення</div><div class="d">Уточнити: години роботи ВЛК, чи треба записуватися, чи потрібні фото й копії, чи приймають ваші аналізи</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="steps">
+      <h2><span class="ico">🏥</span>Етап 3. Проходження</h2>
+      <ul class="items">
+        <li class="item" data-id="s8"><label><input type="checkbox"><span class="step-n">8</span><div class="txt"><div class="t">Реєстратура</div><div class="d">Пред’явити документи та направлення. Отримати картку обстеження і талони до лікарів. Перевірити ПІБ, дату народження, статус</div></div></label></li>
+        <li class="item" data-id="s9"><label><input type="checkbox"><span class="step-n">9</span><div class="txt"><div class="t">Аналізи на місці (якщо не принесли свої)</div></div></label></li>
+        <li class="item has-sub" data-id="s10">
+          <div class="prow">
+            <label><input type="checkbox" class="parent-cb"><span class="step-n">10</span><div class="txt"><div class="t">Пройти 8 лікарів</div><div class="d">Кожному — чесно про скарги й показати документи. Кожен має внести свій висновок у картку (+ інші спеціалісти за скаргами)</div></div></label>
+            <button type="button" class="exp" aria-expanded="false" aria-label="Показати список лікарів"><span class="sc">0/8</span><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l4 4 4-4"/></svg></button>
+          </div>
+          <ul class="items sub-list">
+            <li class="item sub" data-id="s10-surgeon"><label><input type="checkbox"><div class="txt"><div class="t">Хірург</div></div></label></li>
+            <li class="item sub" data-id="s10-neuro"><label><input type="checkbox"><div class="txt"><div class="t">Невролог</div></div></label></li>
+            <li class="item sub" data-id="s10-psych"><label><input type="checkbox"><div class="txt"><div class="t">Психіатр</div></div></label></li>
+            <li class="item sub" data-id="s10-eye"><label><input type="checkbox"><div class="txt"><div class="t">Офтальмолог (окуліст)</div><div class="d">З окулярами/лінзами, якщо носите</div></div></label></li>
+            <li class="item sub" data-id="s10-ent"><label><input type="checkbox"><div class="txt"><div class="t">ЛОР</div></div></label></li>
+            <li class="item sub" data-id="s10-dent"><label><input type="checkbox"><div class="txt"><div class="t">Стоматолог</div></div></label></li>
+            <li class="item sub" data-id="s10-derm"><label><input type="checkbox"><div class="txt"><div class="t">Дерматолог</div></div></label></li>
+            <li class="item sub" data-id="s10-therapist"><label><input type="checkbox"><div class="txt"><div class="t">Терапевт — останнім</div><div class="d">Підсумовує висновки інших лікарів. Йдіть до нього, коли решту вже пройшли</div></div></label></li>
+          </ul>
+        </li>
+        <li class="item" data-id="s11"><label><input type="checkbox"><span class="step-n">11</span><div class="txt"><div class="t">Дообстеження, якщо призначать</div><div class="d">Лабораторія, УЗД/МРТ або стаціонар. Весь процес — до 14 днів від отримання направлення (без дообстежень — до 6 днів)</div></div></label></li>
+        <li class="item" data-id="s12"><label><input type="checkbox"><span class="step-n">12</span><div class="txt"><div class="t">Підсумкове засідання комісії</div><div class="d">Комісія ухвалює постанову про ступінь придатності</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="steps">
+      <h2><span class="ico">✅</span>Етап 4. Результат</h2>
+      <ul class="items">
+        <li class="item" data-id="s13"><label><input type="checkbox"><span class="step-n">13</span><div class="txt"><div class="t">Постанова оформлюється в електронному вигляді</div><div class="d">Передається до ТЦК і в реєстр «Оберіг». До ТЦК іти не треба — ні по направлення, ні після ВЛК</div></div></label></li>
+        <li class="item" data-id="s14"><label><input type="checkbox"><span class="step-n">14</span><div class="txt"><div class="t">Перевірити оновлений ВОД у «Резерв+»</div><div class="d">Звірити результат, зберегти скриншот/PDF. Якщо довго не з’являється — запитати в медзакладі, чи внесли постанову</div></div></label></li>
+        <li class="item" data-id="s15"><label><input type="checkbox"><span class="step-n">15</span><div class="txt"><div class="t">Поставити нагадування через рік</div><div class="d">Під час воєнного стану постанова про придатність діє 1 рік від завершення огляду</div></div></label></li>
+      </ul>
+    </section>
+
+    <section class="group" data-list="steps">
+      <h2><span class="ico">⚖️</span>Якщо не згоден із результатом <small>необов’язково</small></h2>
+      <ul class="items">
+        <li class="item" data-id="s16"><label><input type="checkbox"><span class="step-n">16</span><div class="txt"><div class="t">Протягом 30 днів — скарга до вищої ВЛК <span class="tag ask">за потреби</span></div><div class="d">Додати: усі медичні документи, копію постанови, копію військового квитка. Особисто або рекомендованим листом з описом вкладення та повідомленням про вручення</div></div></label></li>
+        <li class="item" data-id="s17"><label><input type="checkbox"><span class="step-n">17</span><div class="txt"><div class="t">Далі — ЦВЛК або адміністративний суд <span class="tag ask">за потреби</span></div><div class="d">Суд перевіряє лише процедуру (не всі лікарі, не всі аналізи, помилки в оформленні), а не медичні висновки. Оскарження саме по собі не зупиняє дію постанови</div></div></label></li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>
+    Вимоги окремих ВЛК можуть відрізнятися — звіряйтеся з реєстратурою свого медзакладу. Актуально на листопад 2026.
+    <ul>
+      <li><a href="https://mod.gov.ua/explanation/yak-prokhodyt-vlk-ta-komu-chas-na-povtornyi-ohliad-haid-dlia-tsyvilnykh-i-viiskovykh">Міноборони: як проходить ВЛК</a></li>
+      <li><a href="https://mod.gov.ua/news/minoboroni-roz-yasnyuye-yak-v-rezerv-zgeneruvati-elektronne-napravlennya-na-vlk">Міноборони: направлення на ВЛК у «Резерв+»</a></li>
+      <li><a href="https://moz.gov.ua/uk/jak-oskarzhiti-rishennja-vijskovo-likarskoi-komisii">МОЗ: як оскаржити рішення ВЛК</a></li>
+    </ul>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var KEY='vlk-checklist-v1', TTL=90*864e5, state={}, hadData=false;
+  // Зберігаємо 90 днів; кожне відкриття/зміна продовжує термін ще на 90 днів
+  try{
+    var raw=JSON.parse(localStorage.getItem(KEY));
+    if(raw && raw.v===2){ if(Date.now()-raw.ts<TTL){ state=raw.d||{}; } }
+    else if(raw && typeof raw==='object'){ state=raw; } // старий формат
+    hadData=Object.keys(state).length>0;
+  }catch(e){ state={}; }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify({v:2,ts:Date.now(),d:state})); }catch(e){} }
+
+  var items=document.querySelectorAll('li.item:not(.has-sub)');
+  items.forEach(function(li){
+    var cb=li.querySelector('input'), id=li.dataset.id;
+    cb.checked=!!state[id]; li.classList.toggle('checked', cb.checked);
+    cb.addEventListener('change', function(){
+      state[id]=cb.checked; li.classList.toggle('checked', cb.checked); syncParents(); save(); update();
+    });
+  });
+
+  // лікарі: розгортаємий список
+  function syncParents(){
+    document.querySelectorAll('li.has-sub').forEach(function(p){
+      var subs=p.querySelectorAll('li.sub input'), n=0;
+      subs.forEach(function(c){ if(c.checked) n++; });
+      var pc=p.querySelector('.parent-cb');
+      pc.checked=(n===subs.length); pc.indeterminate=(n>0&&n<subs.length);
+      p.classList.toggle('checked', n===subs.length);
+      p.querySelector('.sc').textContent=n+'/'+subs.length;
+    });
+  }
+  document.querySelectorAll('li.has-sub').forEach(function(p){
+    var btn=p.querySelector('.exp'), pc=p.querySelector('.parent-cb');
+    if(state['_open_'+p.dataset.id]){ p.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    btn.addEventListener('click', function(){
+      var o=p.classList.toggle('open'); btn.setAttribute('aria-expanded', o);
+      state['_open_'+p.dataset.id]=o; save();
+    });
+    pc.addEventListener('change', function(){
+      p.querySelectorAll('li.sub').forEach(function(li){
+        var c=li.querySelector('input'); c.checked=pc.checked; state[li.dataset.id]=pc.checked; li.classList.toggle('checked', pc.checked);
+      });
+      syncParents(); save(); update();
+    });
+  });
+  syncParents();
+  if(hadData) save();
+
+  function update(){
+    ['docs','steps'].forEach(function(p){
+      var all=document.querySelectorAll('#panel-'+p+' li.item:not(.has-sub) input');
+      var done=0; all.forEach(function(c){ if(c.checked) done++; });
+      var pct=all.length?Math.round(done/all.length*100):0;
+      document.getElementById('bar-'+p).style.width=pct+'%';
+      document.getElementById('pct-'+p).textContent=done+'/'+all.length;
+      document.getElementById('cnt-'+p).textContent=done+'/'+all.length;
+    });
+  }
+
+  document.querySelectorAll('.reset').forEach(function(b){
+    var armed=false, t;
+    b.addEventListener('click', function(){
+      if(!armed){ armed=true; b.textContent='Точно?'; t=setTimeout(function(){armed=false;b.textContent='Скинути';},2500); return; }
+      clearTimeout(t); armed=false; b.textContent='Скинути';
+      document.querySelectorAll('#panel-'+b.dataset.reset+' li.item:not(.has-sub)').forEach(function(li){
+        var cb=li.querySelector('input'); cb.checked=false; li.classList.remove('checked'); delete state[li.dataset.id];
+      });
+      syncParents(); save(); update();
+    });
+  });
+
+  function show(name){
+    document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.tab===name); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active', p.id==='panel-'+name); });
+  }
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){ show(t.dataset.tab); try{ history.replaceState(null,'','#'+t.dataset.tab); }catch(e){ location.hash=t.dataset.tab; } });
+  });
+  function fromHash(){ var h=(location.hash||'').slice(1); if(h==='docs'||h==='steps') show(h); }
+  window.addEventListener('hashchange', fromHash); fromHash();
+
+  update();
+})();
+</script>
+</body>
+</html>
