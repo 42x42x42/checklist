@@ -22,6 +22,7 @@
   :root{ --wall-a:#e2e9d2; --wall-b:#c9d5b6; --doodle:rgba(58,80,38,.26); }
   @media (prefers-color-scheme: dark){ :root{ --wall-a:#141a13; --wall-b:#1f281c; --doodle:rgba(170,205,135,.13); } }
   *{box-sizing:border-box}
+  html,body{overscroll-behavior-x:none}
   body{margin:0;background:linear-gradient(160deg,var(--wall-a),var(--wall-b)) fixed;min-height:100vh;color:var(--ink);font-family:Manrope,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
   .bgpat{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
   .wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:32px 18px 64px}
@@ -34,6 +35,10 @@
   @media (prefers-color-scheme: dark){.tab[aria-selected="true"]{color:#141614}}
   .tab .cnt{font-size:12px;font-weight:700;opacity:.85;padding:1px 7px;border-radius:99px;background:rgba(127,127,127,.18)}
   .panel{display:none}.panel.active{display:block}
+  .panel.from-right{animation:inR .25s ease-out}.panel.from-left{animation:inL .25s ease-out}
+  @keyframes inR{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+  @keyframes inL{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.panel.from-right,.panel.from-left{animation:none}}
   .progress{display:flex;align-items:center;gap:14px;margin:0 0 18px}
   .bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
   .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
@@ -424,14 +429,40 @@
     });
   });
 
-  function show(name){
+  var ORDER=['docs','steps'];
+  function current(){ return document.querySelector('.panel.active').id.replace('panel-',''); }
+  function show(name, dir){
     document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t.dataset.tab===name); });
-    document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active', p.id==='panel-'+name); });
+    document.querySelectorAll('.panel').forEach(function(p){
+      var on=p.id==='panel-'+name, was=p.classList.contains('active');
+      p.classList.remove('from-left','from-right');
+      p.classList.toggle('active', on);
+      if(on && !was && dir) p.classList.add(dir>0?'from-right':'from-left');
+    });
   }
+  function go(name){
+    var d=ORDER.indexOf(name)-ORDER.indexOf(current()); if(!d) return;
+    show(name,d); window.scrollTo(0,0);
+    try{ history.replaceState(null,'','#'+name); }catch(e){ location.hash=name; }
+  }
+  // свайп між вкладками (телефон)
+  var sx=0, sy=0, st=0, tracking=false;
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length!==1){ tracking=false; return; }
+    var t=e.touches[0]; sx=t.clientX; sy=t.clientY; st=Date.now(); tracking=true;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(!tracking) return; tracking=false;
+    var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-st>800) return;
+    if(Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.5) return;
+    var i=ORDER.indexOf(current()), n=dx<0 ? i+1 : i-1;
+    if(n>=0 && n<ORDER.length) go(ORDER[n]);
+  }, {passive:true});
   document.querySelectorAll('.tab').forEach(function(t){
-    t.addEventListener('click', function(){ show(t.dataset.tab); try{ history.replaceState(null,'','#'+t.dataset.tab); }catch(e){ location.hash=t.dataset.tab; } });
+    t.addEventListener('click', function(){ go(t.dataset.tab); });
   });
-  function fromHash(){ var h=(location.hash||'').slice(1); if(h==='docs'||h==='steps') show(h); }
+  function fromHash(){ var h=(location.hash||'').slice(1); if(h==='docs'||h==='steps') show(h,0); }
   window.addEventListener('hashchange', fromHash); fromHash();
 
   update();
